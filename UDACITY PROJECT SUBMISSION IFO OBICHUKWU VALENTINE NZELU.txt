@@ -1,0 +1,71 @@
+
+
+/*Query 1 - Query used for first insight*/
+
+SELECT  F.title AS Film_title,Cat.name AS Category_name, COUNT(Rental_id) AS Rental_Count
+  FROM Film F
+  JOIN film_category Flm_cat
+    ON F.film_id=Flm_cat.film_id
+  JOIN Category Cat
+    ON Cat.category_id=Flm_cat.category_id
+  JOIN Inventory I
+    ON Flm_cat.film_id=I.film_id
+  JOIN Rental R
+    ON I.inventory_id=R.inventory_id
+ WHERE Cat.name IN ('Animation', 'Children', 'Classics','Comedy','Family', 'Music')
+GROUP BY Film_title, Category_name
+ORDER BY Category_name
+
+
+/*Query 2 - Query used for second insight*/
+
+ SELECT t1.Category_name,t1.Standard_quartile, COUNT(*)
+     FROM
+	(SELECT F.title AS Film_title, Cat.name AS Category_name, F.rental_duration AS Rental_duration, NTILE(4) OVER ( ORDER BY F.rental_duration ) AS Standard_quartile
+	   FROM Film F
+	   JOIN film_category Flm_cat
+	     ON F.film_id=Flm_cat.film_id
+	   JOIN Category Cat
+	     ON Cat.category_id=Flm_cat.category_id
+	   WHERE Cat.name IN ('Animation', 'Children', 'Classics','Comedy','Family', 'Music')
+	   ORDER BY rental_duration) t1
+GROUP BY 1,2
+ORDER BY 1,2
+
+
+
+/*Query 3 - Query used for third insight*/
+
+
+   SELECT DATE_PART('month',rental_date) AS Rental_month, DATE_PART ('Year',rental_date) AS Rental_year, s.store_id AS Store_ID, COUNT(*) AS Count_rentals
+    FROM store s
+    JOIN Staff st
+      ON s.store_id=st.store_id
+    JOIN rental r
+      ON r.staff_id=st.staff_id
+GROUP BY 1,2,3
+ORDER BY Count_rentals DESC
+
+
+/*Query 4 - Query used for fourth insight*/
+
+WITH table_1 AS 
+	(SELECT c.first_name ||' '|| c.last_name AS full_name, SUM(p.amount) AS pay_amount
+  	   FROM Customer C
+  	   JOIN Payment P
+  	     ON C.customer_id=P.customer_id
+  	GROUP BY full_name
+  	ORDER BY pay_amount DESC
+  	LIMIT 10)
+ 
+SELECT DATE_TRUNC('Month', payment_date) AS Pay_mon, c.first_name ||' '|| c.last_name AS full_name, COUNT(p.amount) AS pay_count_mon, SUM(p.amount) AS pay_amount
+  FROM Customer C
+  JOIN Payment P
+    ON C.customer_id=P.customer_id
+ WHERE c.first_name ||' '|| c.last_name IN 
+ 	(SELECT Full_name
+ 	FROM table_1)
+   AND P.payment_date BETWEEN '2007-01-01' AND '2008-01-01'
+GROUP BY 1,2
+ORDER BY 2;
+  
